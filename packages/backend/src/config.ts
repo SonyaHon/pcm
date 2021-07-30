@@ -6,6 +6,9 @@ export const Config = {
   },
   orm: {
     type: 'sqlite',
-    database: 'devdb.sqlite',
+    database: 'database.sqlite',
   } as TypeOrmModuleOptions,
+  session: {
+    secret: '',
+  },
 };

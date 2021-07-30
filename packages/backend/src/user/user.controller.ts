@@ -1,6 +1,8 @@
 import {
   Body,
   Controller,
+  Get,
+  HttpCode,
   HttpException,
   HttpStatus,
   Post,
@@ -23,15 +25,20 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post('/login')
+  @HttpCode(200)
   async login(
     @Body() body: LoginDTO,
-    @Session() session: UserSession,
+    @Session() session?: UserSession,
   ): Promise<Partial<User> | undefined> {
     try {
       const user = await this.userService.getUserByCredentials({
         username: body.username,
         password: body.password,
       });
+
+      if (!session) {
+        session = {} as any as UserSession;
+      }
 
       session.userId = user.id;
       session.loggedIn = true;
@@ -53,6 +60,7 @@ export class UserController {
   }
 
   @UseGuards(AuthGuard)
+  @Get()
   async getSelf(
     @Session() session: UserSession,
   ): Promise<Partial<User> | undefined> {
@@ -72,6 +80,7 @@ export class UserController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('/logout')
   async logout(@Session() session: UserSession): Promise<void> {
     session.loggedIn = false;
   }

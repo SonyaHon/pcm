@@ -5,10 +5,11 @@ import { UserController } from './user.controller';
 import { AuthGuard } from './auth.guard';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from '../entities/user.entity';
+import { UserRepositoryAdapter } from './user.repository-adapter';
 
 @Module({
   imports: [UtilModule, TypeOrmModule.forFeature([UserEntity])],
-  providers: [UserService, AuthGuard],
+  providers: [UserService, AuthGuard, UserRepositoryAdapter],
   controllers: [UserController],
   exports: [UserService, AuthGuard],
 })

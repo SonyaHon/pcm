@@ -12,6 +12,8 @@ export function switchError<T extends new () => Error, F extends Error>(
     }
   }
 
+  console.error(originalError);
+
   if (finalError) throw finalError;
   throw new HttpException(
     'Internal Server error',
