@@ -28,11 +28,13 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     module = moduleFixture.createNestApplication();
-    module.use(session({
-      secret: 'secret',
-      resave: false,
-      saveUninitialized: false
-    }));
+    module.use(
+      session({
+        secret: 'secret',
+        resave: false,
+        saveUninitialized: false,
+      }),
+    );
     await module.init();
   });
 
@@ -63,7 +65,7 @@ describe('AppController (e2e)', () => {
         role: UserRole.ADMIN,
       });
 
-      const { body } = await request(module.getHttpServer())
+      await request(module.getHttpServer())
         .post('/user/login')
         .send({
           username: 'wrong username',
@@ -80,7 +82,7 @@ describe('AppController (e2e)', () => {
         role: UserRole.ADMIN,
       });
 
-      const { body } = await request(module.getHttpServer())
+      await request(module.getHttpServer())
         .post('/user/login')
         .send({
           username: 'r3',
@@ -94,13 +96,13 @@ describe('AppController (e2e)', () => {
 
   describe('Get self', () => {
     it('Should fail without login', async () => {
-      const user = await module.get<UserService>(UserService).createUser({
+      await module.get<UserService>(UserService).createUser({
         username: 'r4',
         password: 'root',
         role: UserRole.ADMIN,
       });
 
-      const { body } = await request(module.getHttpServer())
+      await request(module.getHttpServer())
         .get('/user')
         .expect(HttpStatus.FORBIDDEN);
     });
@@ -117,7 +119,6 @@ describe('AppController (e2e)', () => {
         .send({ username: 'r5', password: 'root' })
         .set('Accept', 'application/json');
 
-
       const { body } = await request(module.getHttpServer())
         .get('/user')
         .set('Cookie', result.get('Set-Cookie'))
@@ -127,26 +128,26 @@ describe('AppController (e2e)', () => {
     });
 
     it('Should fail after logout', async () => {
-      const user = await module.get<UserService>(UserService).createUser({
+      await module.get<UserService>(UserService).createUser({
         username: 'r6',
         password: 'root',
         role: UserRole.ADMIN,
       });
 
       const loginResult = await request(module.getHttpServer())
-          .post('/user/login')
-          .send({ username: 'r6', password: 'root' })
-          .set('Accept', 'application/json');
+        .post('/user/login')
+        .send({ username: 'r6', password: 'root' })
+        .set('Accept', 'application/json');
 
       await request(module.getHttpServer())
-          .get('/user/logout')
-          .set('Cookie', loginResult.get('Set-Cookie'))
-          .expect(HttpStatus.OK);
+        .get('/user/logout')
+        .set('Cookie', loginResult.get('Set-Cookie'))
+        .expect(HttpStatus.OK);
 
-      const { body } = await request(module.getHttpServer())
-          .get('/user')
-          .set('Cookie', loginResult.get('Set-Cookie'))
-          .expect(HttpStatus.FORBIDDEN);
+      await request(module.getHttpServer())
+        .get('/user')
+        .set('Cookie', loginResult.get('Set-Cookie'))
+        .expect(HttpStatus.FORBIDDEN);
     });
   });
 
