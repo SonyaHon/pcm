@@ -3,7 +3,7 @@ services:
   app:
     build:
       context: .
-      target: development
+      target: production
     volumes:
       - .:/usr/app
       - /usr/app/node_modules
@@ -12,7 +12,7 @@ services:
     ports:
       - '9229:9229'
       - ${APP_PORT}:${APP_PORT}
-    command: npm run start:debug
+    command: npm run start
     networks:
       appnet:
   mongodb:
@@ -20,16 +20,14 @@ services:
     restart: always
     env_file:
       - .env
-    ports:
-      - ${MONGO_PORT}:${MONGO_PORT}
+    volumes:
+      - ./mongo/data:/data/db
     networks:
       appnet:
   redis:
     image: redis
     env_file:
       - .env
-    ports:
-      - ${REDIS_PORT}:${REDIS_PORT}
     networks:
       appnet:
 networks:

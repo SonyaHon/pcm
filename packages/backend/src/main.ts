@@ -12,7 +12,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   if (Config().env === ENVIRONMENT.DEVELOPMENT) {
-    app.enableCors();
+    app.enableCors({
+      origin: 'http://localhost:3000',
+      credentials: true,
+    });
   }
 
   app.use(bodyParser.json());
@@ -30,6 +33,7 @@ async function bootstrap() {
       resave: false,
       saveUninitialized: false,
       store,
+      cookie: {},
     }),
   );
 
