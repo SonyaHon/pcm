@@ -1,21 +1,20 @@
 import {
   CanActivate,
   ExecutionContext,
-  HttpException,
-  HttpStatus,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import { UserSession } from './user.schema';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  canActivate(
-    context: ExecutionContext,
-  ): boolean | Promise<boolean> | Observable<boolean> {
+  constructor() {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    if (!request.session?.loggedIn) {
-      throw new HttpException('Authentication Required', HttpStatus.FORBIDDEN);
-    }
-    return true;
+
+    if ((request?.session as UserSession).loggedIn) return true;
+
+    throw new UnauthorizedException();
   }
 }

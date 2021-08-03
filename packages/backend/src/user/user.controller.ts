@@ -2,75 +2,44 @@ import {
   Body,
   Controller,
   Get,
-  HttpCode,
   HttpException,
   HttpStatus,
   Post,
   Session,
   UseGuards,
 } from '@nestjs/common';
+import { UserLoginDTO } from './user.dto';
 import { UserService } from './user.service';
+import { switchCatch } from '../util/switch-catch';
 import { UserModule } from './user.module';
-import { User, UserSession } from './user.domain';
+import { UserSession } from './user.schema';
 import { AuthGuard } from './auth.guard';
-import { switchError } from '../lib/switch-error';
-
-export interface LoginDTO {
-  username: string;
-  password: string;
-}
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly service: UserService) {}
 
   @Post('/login')
-  @HttpCode(200)
-  async login(
-    @Body() body: LoginDTO,
-    @Session() session?: UserSession,
-  ): Promise<Partial<User> | undefined> {
+  async login(@Body() body: UserLoginDTO, @Session() session: UserSession) {
     try {
-      const user = await this.userService.getUserByCredentials({
-        username: body.username,
-        password: body.password,
-      });
+      const user = await this.service.validateUserCredentials(body);
 
-      if (!session) {
-        session = {} as any as UserSession;
-      }
-
-      session.userId = user.id;
       session.loggedIn = true;
+      session.user = {
+        id: user._id,
+      };
 
-      return user.getWithoutSensitiveData();
-    } catch (e) {
-      switchError(e, [
+      return user.removeSensitiveData();
+    } catch (error) {
+      await switchCatch(error, [
         {
-          case: UserModule.Exception.UserNotFound,
-          callback: () => {
-            throw new HttpException(
-              'Username or Password is incorrect',
-              HttpStatus.FORBIDDEN,
-            );
+          instance: UserModule.Exception.UserNotFoundException,
+          callback: (e) => {
+            throw new HttpException('User not found', HttpStatus.NOT_FOUND);
           },
         },
-      ]);
-    }
-  }
-
-  @UseGuards(AuthGuard)
-  @Get()
-  async getSelf(
-    @Session() session: UserSession,
-  ): Promise<Partial<User> | undefined> {
-    try {
-      const user = await this.userService.getUserById(session.userId);
-      return user.getWithoutSensitiveData();
-    } catch (e) {
-      switchError(e, [
         {
-          case: UserModule.Exception.UserNotFound,
+          instance: UserModule.Exception.IncorrectPasswordException,
           callback: () => {
             throw new HttpException('User not found', HttpStatus.NOT_FOUND);
           },
@@ -79,9 +48,10 @@ export class UserController {
     }
   }
 
-  @UseGuards(AuthGuard)
-  @Get('/logout')
-  async logout(@Session() session: UserSession): Promise<void> {
-    session.loggedIn = false;
+  @Get('/me')
+  @UseGuards(new AuthGuard())
+  async getSelf(@Session() session: UserSession) {
+    const user = await this.service.getUserById(session.user.id);
+    return user.removeSensitiveData();
   }
 }

@@ -1,20 +1,47 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { UserService } from './user.service';
-import { UtilModule } from '../util/util.module';
 import { UserController } from './user.controller';
+import { MongooseModule } from '@nestjs/mongoose';
+import { User, UserRole, UserSchema } from './user.schema';
+import { ModuleRef } from '@nestjs/core';
+import { Config } from '../config';
 import { AuthGuard } from './auth.guard';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { UserEntity } from '../entities/user.entity';
-import { UserRepositoryAdapter } from './user.repository-adapter';
 
 @Module({
-  imports: [UtilModule, TypeOrmModule.forFeature([UserEntity])],
-  providers: [UserService, AuthGuard, UserRepositoryAdapter],
+  imports: [
+    MongooseModule.forFeature([
+      {
+        name: User.name,
+        schema: UserSchema,
+      },
+    ]),
+  ],
+  providers: [UserService, AuthGuard],
   controllers: [UserController],
   exports: [UserService, AuthGuard],
 })
-export class UserModule {
-  static Exception = {
-    UserNotFound: class extends Error {},
+export class UserModule implements OnModuleInit {
+  public static readonly Exception = {
+    UserNotFoundException: class extends Error {},
+    IncorrectPasswordException: class extends Error {},
   };
+
+  constructor(private readonly moduleRef: ModuleRef) {}
+
+  async onModuleInit() {
+    try {
+      const userService = this.moduleRef.get<UserService>(UserService);
+      await userService.createUser({
+        username: Config().app.defaultAdmin.username,
+        password: Config().app.defaultAdmin.password,
+        role: UserRole.ADMIN,
+      });
+    } catch (err) {
+      if (err.code && err.code == '11000') {
+        return;
+      }
+
+      console.error(err);
+    }
+  }
 }
